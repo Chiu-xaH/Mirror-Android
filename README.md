@@ -1,4 +1,4 @@
 # Mirror-Compose-Sample
-着色器(Shader)+Compose仿手机系统控制中心后退镜像效果
+着色器(Shader)+Compose后退镜像效果
 
-![img](/src/Screenshot_20251006_173445.png)
+![img](/src/c3a3109e84f8b96c0f33b6548998975.jpg)

@@ -98,7 +98,7 @@ class MainActivity : ComponentActivity() {
                         0.dp // 未校准前不模糊
                     } else {
                         val fraction = 1 - (drawerState.currentOffset / maxOffset).coerceIn(0f, 1f)
-                        (fraction * 35).dp//37.5
+                        (fraction * 7.5).dp//37.5
                     }
                 }
             }
@@ -108,14 +108,14 @@ class MainActivity : ComponentActivity() {
                         1f
                     } else {
                         val fraction =  (drawerState.currentOffset / maxOffset).coerceIn(0f, 1f)
-                        (0.875f) * (1 - fraction) + fraction
+                        (0.9f) * (1 - fraction) + fraction
                     }
                 }
             }
             ModalNavigationDrawer  (
                 scrimColor =
                     if(showBlur) {
-                        MaterialTheme.colorScheme.surface.copy(.2f)
+                        MaterialTheme.colorScheme.onSurface.copy(.2f)
                     } else MaterialTheme.colorScheme.onSurface.copy(.3f),
                 drawerState = drawerState,
                 drawerContent = {

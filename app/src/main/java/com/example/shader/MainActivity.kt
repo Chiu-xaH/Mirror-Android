@@ -9,14 +9,19 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -29,6 +34,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.LaunchedEffect
@@ -43,15 +49,22 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.example.shader.util.rememberShaderState
+import com.example.shader.util.shaderLayer
 import com.example.shader.util.shaderSelf
 import com.example.shader.util.shaderSource
 import kotlinx.coroutines.Dispatchers
@@ -131,56 +144,89 @@ class MainActivity : ComponentActivity() {
                         .blur(if(showBlur)blurDp else 0.dp)
                         .shaderSelf(scale,RoundedCornerShape(0.dp))
                     ) {
-                        if(imageBitmap == null) {
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize().shaderSource(shaderState)
-                            ) {
-                                item {
-                                    Spacer(Modifier.statusBarsPadding())
+                        var offsetX by remember { mutableStateOf(0.dp) }
+                        var offsetY by remember { mutableStateOf(0.dp) }
+                        Surface (
+                            color = MaterialTheme.colorScheme.onSurface.copy(0f),
+                            shape = RoundedCornerShape(20.dp),
+//                            shadowElevation = 10.dp,
+//                            border = BorderStroke(1.dp,MaterialTheme.colorScheme.primaryContainer),
+                            modifier = Modifier
+                                .size(150.dp)
+                                .zIndex(2f)
+                                .offset { IntOffset(offsetX.roundToPx(), offsetY.roundToPx()) }
+                                .pointerInput(Unit) {
+                                    detectDragGestures { change, dragAmount ->
+                                        change.consume()
+                                        offsetX += with(density) { dragAmount.x.toDp() }
+                                        offsetY += with(density) { dragAmount.y.toDp() }
+                                    }
                                 }
-                                items(100) { index ->
-                                    ListItem(
-                                        headlineContent = {
-                                            Text("测试")
-                                        },
-                                        trailingContent = {
-                                            Icon(
-                                                painterResource(R.drawable.ic_launcher_foreground),
-                                                null
-                                            )
-                                        }
-                                    )
-                                }
-                                item {
-                                    Spacer(Modifier.navigationBarsPadding())
-                                }
-                            }
-                        } else {
-                            Image(
-                                bitmap = imageBitmap!!.asImageBitmap(),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
+                                .shadow(15.dp, shape = MaterialTheme.shapes.large,)
+                                .shaderLayer(
+                                    shaderState,
+                                    scale = 0.8f,
+                                    clipShape = MaterialTheme.shapes.large,
+                                    tint = MaterialTheme.colorScheme.surface.copy(.35f),
+                                    blur = 10.dp
+                                )
+                        ) {
                         }
 
-                        Row (
-                            Modifier.zIndex(3f).align(Alignment.TopCenter).statusBarsPadding().padding(15.dp).background(
-                                MaterialTheme.colorScheme.secondaryContainer,CircleShape)
+                        Box(
+                            modifier = Modifier.shaderSource(shaderState)
                         ){
-                            FilledTonalButton (
-                                onClick = {
-                                    pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                                },
-                            ) {
-                                Text("选择图片")
+                            if(imageBitmap == null) {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    item {
+                                        Spacer(Modifier.statusBarsPadding())
+                                    }
+                                    items(100) { index ->
+                                        ListItem(
+                                            headlineContent = {
+                                                Text("测试")
+                                            },
+                                            trailingContent = {
+                                                Icon(
+                                                    painterResource(R.drawable.ic_launcher_foreground),
+                                                    null
+                                                )
+                                            }
+                                        )
+                                    }
+                                    item {
+                                        Spacer(Modifier.navigationBarsPadding())
+                                    }
+                                }
+                            } else {
+                                Image(
+                                    bitmap = imageBitmap!!.asImageBitmap(),
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
                             }
-                            FilledTonalButton(
-                                onClick = {
-                                    showBlur = !showBlur
-                                },
-                            ) {
-                                Text("模糊")
+
+                            Row (
+                                Modifier.zIndex(3f).align(Alignment.TopCenter).statusBarsPadding().padding(15.dp).background(
+                                    MaterialTheme.colorScheme.secondaryContainer,CircleShape)
+                            ){
+                                FilledTonalButton (
+                                    onClick = {
+                                        pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                    },
+                                ) {
+                                    Text("选择图片")
+                                }
+                                FilledTonalButton(
+                                    onClick = {
+                                        showBlur = !showBlur
+                                    },
+                                ) {
+                                    Text("模糊")
+                                }
                             }
                         }
                     }

@@ -2,7 +2,6 @@ package com.example.shader.util
 
 import android.graphics.RenderEffect
 import android.graphics.RuntimeShader
-import android.graphics.Shader
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -15,7 +14,6 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -31,11 +29,6 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.intellij.lang.annotations.Language
-import kotlin.unaryMinus
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.ui.graphics.CompositingStrategy
 
 
 /*
@@ -67,7 +60,7 @@ fun Modifier.shaderSelf(
                     clip = true
                     shape = clipShape
                     rect?.let { r ->
-                        val runtimeShader = RuntimeShader(SHADER_CODE.trimIndent())
+                        val runtimeShader = RuntimeShader(MIRROR_SHADER_CODE.trimIndent())
                         runtimeShader.setFloatUniform("size", r.width, r.height)
                         runtimeShader.setFloatUniform("scale", scale)
 
@@ -130,22 +123,23 @@ fun Modifier.shaderLayer(
                 drawRect(tint)
             }
         }
-        .blur(blur)
-        .shaderLayer(state,scale,isMirror)
+        .shaderLayer(state,scale,blur,isMirror)
 
 fun Modifier.shaderLayer(
     state: ShaderState,
     scale : Float,
+    blur : Dp = 0.dp,
     isMirror : Boolean = false,
 ) : Modifier =
     this
+        .blur(blur)
         .graphicsLayer {
             state.sRect?.let { r ->
                 val runtimeShader = RuntimeShader(
                     if(isMirror) {
-                        SHADER_CODE
+                        MIRROR_SHADER_CODE
                     } else {
-                        SHADER_CODE_2
+                        GLASS_SHADER_CODE
                     }
                     .trimIndent()
                 )
@@ -156,6 +150,7 @@ fun Modifier.shaderLayer(
                     runtimeShader.setFloatUniform("border", 75f)
                     runtimeShader.setFloatUniform("strength", scale)
                 }
+                runtimeShader.setFloatUniform("enhanceContrast", if (blur != 0.dp) 1f else 0f)
                 val mirrorShader = RenderEffect.createRuntimeShaderEffect(runtimeShader, "content")
                 renderEffect = mirrorShader.asComposeRenderEffect()
             }
@@ -206,10 +201,11 @@ class ShaderState internal constructor(
 }
 
 @Language("ASGL")
-private const val SHADER_CODE = """
+private const val MIRROR_SHADER_CODE = """
     uniform shader content;
     uniform float2 size;   // 原始画面宽高
     uniform float scale;   // 缩放比例，
+    uniform float enhanceContrast; // 是否增强对比度与亮度
         
     half4 main(float2 fragCoord) {
         float2 center = size * 0.5;
@@ -226,15 +222,30 @@ private const val SHADER_CODE = """
         if(sampleCoord.y < 0.0) sampleCoord.y = -sampleCoord.y;
         if(sampleCoord.y > size.y) sampleCoord.y = 2.0*size.y - sampleCoord.y;
         
-        return content.eval(sampleCoord);
+        half4 color = content.eval(sampleCoord);
+
+        // ---- 鲜艳度增强 ----
+        const half3 rgbToY = half3(0.2126, 0.7152, 0.0722);
+        half luma = dot(color.rgb, rgbToY);
+        color.rgb = mix(half3(luma, luma, luma), color.rgb, 1.25); // 固定饱和度提升
+    
+        // ---- 条件增强对比度 ----
+        if (enhanceContrast == 1) {
+            color.rgb = (color.rgb - 0.5) * 1.2 + 0.5; // 对比度 +20%
+            color.rgb *= 1.05; // 稍微提亮
+        }
+    
+        return color;
     }
 """
+
 @Language("ASGL")
-private const val SHADER_CODE_2 = """
+private const val GLASS_SHADER_CODE = """
 uniform shader content;
 uniform float2 size;
 uniform float border;   // 折射边缘宽度 (建议 20~80)
 uniform float strength; // 折射强度 (建议 0.1~0.3)
+uniform float enhanceContrast; // 是否增强对比度与亮度
 
 half4 main(float2 fragCoord) {
     float2 uv = fragCoord;
@@ -257,8 +268,20 @@ half4 main(float2 fragCoord) {
     if (uv.y < 0.0) uv.y = -uv.y;
     if (uv.y > size.y) uv.y = 2.0 * size.y - uv.y;
 
-    return content.eval(uv);
+    half4 color = content.eval(uv);
+
+    // ---- 鲜艳度增强 ----
+    const half3 rgbToY = half3(0.2126, 0.7152, 0.0722);
+    half luma = dot(color.rgb, rgbToY);
+    color.rgb = mix(half3(luma, luma, luma), color.rgb, 1.25); // 固定饱和度提升
+
+    // ---- 条件增强对比度 ----
+    if (enhanceContrast == 1) {
+        color.rgb = (color.rgb - 0.5) * 1.2 + 0.5; // 对比度 +20%
+        color.rgb *= 1.05; // 稍微提亮
+    }
+
+    return color;
 }
 """
-
 

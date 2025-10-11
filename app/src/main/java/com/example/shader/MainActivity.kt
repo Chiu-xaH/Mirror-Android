@@ -139,7 +139,7 @@ class MainActivity : ComponentActivity() {
                     drawerState = drawerState,
                     drawerContent = {
                         Box(modifier = Modifier.fillMaxSize()) {
-//                        Text("控制中心", modifier = Modifier.align(Alignment.Center))
+                            Text("控制中心", modifier = Modifier.align(Alignment.Center))
                         }
                     },
                     modifier = Modifier.statusBarsPadding().navigationBarsPadding()
@@ -157,7 +157,7 @@ class MainActivity : ComponentActivity() {
                             )
                             val color by animateColorAsState(
                                 if(showBlur) {
-                                    MaterialTheme.colorScheme.surface.copy(.2f)
+                                    MaterialTheme.colorScheme.surface.copy(.0f)
                                 } else {
                                     MaterialTheme.colorScheme.onSurface.copy(.15f)
                                 }

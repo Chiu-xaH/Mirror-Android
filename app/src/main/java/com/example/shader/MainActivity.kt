@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -144,15 +145,16 @@ class MainActivity : ComponentActivity() {
                         .blur(if(showBlur)blurDp else 0.dp)
                         .shaderSelf(scale,RoundedCornerShape(0.dp))
                     ) {
-                        var offsetX by remember { mutableStateOf(0.dp) }
-                        var offsetY by remember { mutableStateOf(0.dp) }
+                        var offsetX by remember { mutableStateOf(15.dp) }
+                        var offsetY by remember { mutableStateOf(15.dp) }
+                        val squareBlur by animateDpAsState(
+                            if(showBlur) 10.dp else 0.dp
+                        )
                         Surface (
                             color = MaterialTheme.colorScheme.onSurface.copy(0f),
                             shape = RoundedCornerShape(20.dp),
-//                            shadowElevation = 10.dp,
-//                            border = BorderStroke(1.dp,MaterialTheme.colorScheme.primaryContainer),
                             modifier = Modifier
-                                .size(150.dp)
+                                .size(175.dp)
                                 .zIndex(2f)
                                 .offset { IntOffset(offsetX.roundToPx(), offsetY.roundToPx()) }
                                 .pointerInput(Unit) {
@@ -167,8 +169,8 @@ class MainActivity : ComponentActivity() {
                                     shaderState,
                                     scale = 0.8f,
                                     clipShape = MaterialTheme.shapes.large,
-                                    tint = MaterialTheme.colorScheme.surface.copy(.35f),
-                                    blur = 10.dp
+                                    tint = MaterialTheme.colorScheme.surface.copy(.15f),
+                                    blur = squareBlur
                                 )
                         ) {
                         }

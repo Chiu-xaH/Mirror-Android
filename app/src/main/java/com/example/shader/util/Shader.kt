@@ -157,7 +157,6 @@ fun Modifier.shaderLayer(
                     drawLayer(state.graphicsLayer)
                 }
             }
-
         }
         // 记录位置
         .onGloballyPositioned { layoutCoordinates ->

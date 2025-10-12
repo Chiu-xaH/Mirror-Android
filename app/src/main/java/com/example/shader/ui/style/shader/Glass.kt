@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.shader.ui.util.ShaderState
 import org.intellij.lang.annotations.Language
+import java.util.UUID
 
 
 // 绘制内容
@@ -43,11 +44,12 @@ fun Modifier.glassLayer(
     state: ShaderState,
     scale : Float,
     blur : Dp = 0.dp,
+    id: Any = UUID.randomUUID()
 ) : Modifier =
     this
         .blur(blur)
         .graphicsLayer {
-            state.sRect?.let { r ->
+            state.componentRects[id]?.let { r ->
                 val runtimeShader = RuntimeShader(GLASS_SHADER_CODE .trimIndent())
                 runtimeShader.setFloatUniform("size", r.width, r.height)
                 runtimeShader.setFloatUniform("border", 75f)
@@ -64,7 +66,7 @@ fun Modifier.glassLayer(
         .drawWithCache {
             onDrawBehind {
                 val contentRect = state.rect ?: return@onDrawBehind
-                val surfaceRect = state.sRect ?: return@onDrawBehind
+                val surfaceRect = state.componentRects[id] ?: return@onDrawBehind
 
                 val offset = surfaceRect.topLeft - contentRect.topLeft
                 // 绘制原画面
@@ -79,7 +81,7 @@ fun Modifier.glassLayer(
         .onGloballyPositioned { layoutCoordinates ->
             val pos = layoutCoordinates.positionInWindow()
             val size = layoutCoordinates.size
-            state.sRect = Rect(
+            state.componentRects[id] = Rect(
                 pos.x,
                 pos.y,
                 pos.x + size.width,

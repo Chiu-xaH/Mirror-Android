@@ -2,6 +2,7 @@ package com.example.shader.ui.util
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -27,7 +28,7 @@ class ShaderState internal constructor(
 ) {
     // 裁剪形状
     internal var rect: Rect? by mutableStateOf(null)
-    internal var sRect: Rect? by mutableStateOf(null)
+    internal val componentRects = mutableStateMapOf<Any, Rect>()
 }
 
 // 记录内容

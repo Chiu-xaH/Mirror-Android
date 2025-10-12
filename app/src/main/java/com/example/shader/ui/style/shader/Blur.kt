@@ -17,6 +17,7 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.shader.ui.util.ShaderState
+import java.util.UUID
 
 // 层级模糊
 
@@ -24,29 +25,28 @@ import com.example.shader.ui.util.ShaderState
 fun Modifier.blurLayer(
     state: ShaderState,
     clipShape: Shape,
+    id: Any = UUID.randomUUID()
 ) : Modifier =
     this
         .clip(clipShape)
         .drawWithCache {
             onDrawBehind {
                 val contentRect = state.rect ?: return@onDrawBehind
-                val surfaceRect = state.sRect ?: return@onDrawBehind
+                val surfaceRect = state.componentRects[id] ?: return@onDrawBehind
 
                 val offset = surfaceRect.topLeft - contentRect.topLeft
-                // 绘制原画面
                 withTransform({
                     translate(-offset.x, -offset.y)
-                    clipRect(0f, 0f, contentRect.width, contentRect.height)
+                    clipRect(0f, 0f, surfaceRect.width, surfaceRect.height)
                 }) {
                     drawLayer(state.graphicsLayer)
                 }
             }
         }
-        // 记录位置
         .onGloballyPositioned { layoutCoordinates ->
             val pos = layoutCoordinates.positionInWindow()
             val size = layoutCoordinates.size
-            state.sRect = Rect(
+            state.componentRects[id] = Rect(
                 pos.x,
                 pos.y,
                 pos.x + size.width,

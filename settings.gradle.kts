@@ -21,3 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "ShaderDemo"
 include(":app")
+include(":mirror")

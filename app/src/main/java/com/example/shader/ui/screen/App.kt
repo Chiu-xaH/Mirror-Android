@@ -9,7 +9,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -60,18 +59,14 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.example.shader.R
-import com.example.shader.ui.style.shader.blurLayer
-import com.example.shader.ui.style.shader.blurSource
-import com.example.shader.ui.style.shader.glassLayer
-import com.example.shader.ui.style.shader.scaleMirror
-import com.example.shader.ui.util.ShaderState
-import com.example.shader.ui.util.rememberShaderState
-import com.example.shader.ui.util.shaderSource
+import com.xah.mirror.shader.blurLayer
+import com.xah.mirror.shader.glassLayer
+import com.xah.mirror.shader.scaleMirror
+import com.xah.mirror.util.ShaderState
+import com.xah.mirror.util.rememberShaderState
+import com.xah.mirror.util.shaderSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.HashMap
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentMap
 
 private suspend fun getDrawOpenOffset(drawerState : DrawerState) : Float = withContext(Dispatchers.IO) {
     drawerState.close()
@@ -255,6 +250,7 @@ fun Square(
                 if (!isBlurSquare)
                     it.glassLayer(
                         shaderState,
+                        dispersion = 0f,
                         clipShape = shape,
                         tint = color,
                         blur = squareBlur

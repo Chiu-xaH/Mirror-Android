@@ -42,9 +42,9 @@ dependencies {
 publishing {
     publications {
         register<MavenPublication>("release") {
-            groupId = "com.xah.bsdiffs"
+            groupId = "com.xah.mirror"
             artifactId = "library"
-            version = "1.0.1.2"
+            version = "0.1-aplha01"
 
             afterEvaluate {
                 from(components["release"])

@@ -2,7 +2,12 @@ package com.example.shader.ui.style.shader
 
 import android.graphics.RenderEffect
 import android.graphics.Shader
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
@@ -17,6 +22,7 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.shader.ui.util.ShaderState
+import com.example.shader.ui.util.recordPosition
 import java.util.UUID
 
 // 层级模糊
@@ -25,14 +31,15 @@ import java.util.UUID
 fun Modifier.blurLayer(
     state: ShaderState,
     clipShape: Shape,
-    id: Any = UUID.randomUUID()
-) : Modifier =
+) : Modifier = composed {
+    var rect by remember { mutableStateOf<Rect?>(null) }
+
     this
         .clip(clipShape)
         .drawWithCache {
             onDrawBehind {
                 val contentRect = state.rect ?: return@onDrawBehind
-                val surfaceRect = state.componentRects[id] ?: return@onDrawBehind
+                val surfaceRect = rect ?: return@onDrawBehind
 
                 val offset = surfaceRect.topLeft - contentRect.topLeft
                 withTransform({
@@ -43,16 +50,10 @@ fun Modifier.blurLayer(
                 }
             }
         }
-        .onGloballyPositioned { layoutCoordinates ->
-            val pos = layoutCoordinates.positionInWindow()
-            val size = layoutCoordinates.size
-            state.componentRects[id] = Rect(
-                pos.x,
-                pos.y,
-                pos.x + size.width,
-                pos.y + size.height
-            )
+        .recordPosition {
+            rect = it
         }
+}
 
 // 记录内容
 fun Modifier.blurSource(

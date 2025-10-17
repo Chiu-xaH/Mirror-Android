@@ -10,6 +10,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -46,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -53,16 +55,23 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.example.shader.R
+import com.example.shader.ui.style.shader.blurLayer
+import com.example.shader.ui.style.shader.blurSource
 import com.example.shader.ui.style.shader.glassLayer
 import com.example.shader.ui.style.shader.scaleMirror
+import com.example.shader.ui.util.ShaderState
 import com.example.shader.ui.util.rememberShaderState
 import com.example.shader.ui.util.shaderSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.HashMap
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
 
 private suspend fun getDrawOpenOffset(drawerState : DrawerState) : Float = withContext(Dispatchers.IO) {
     drawerState.close()
@@ -135,43 +144,17 @@ fun App() {
                 .blur(if(showBlur)blurDp else 0.dp)
                 .scaleMirror(scale,RoundedCornerShape(0.dp))
             ) {
-                var offsetX by remember { mutableStateOf(15.dp) }
-                var offsetY by remember { mutableStateOf(15.dp) }
                 val squareBlur by animateDpAsState(
                     if(showBlur) 10.dp else 0.dp
                 )
-                val color by animateColorAsState(
+                val color2 by animateColorAsState(
                     if(showBlur) {
-                        MaterialTheme.colorScheme.surface.copy(.0f)
+                        MaterialTheme.colorScheme.surface.copy(.15f)
                     } else {
                         MaterialTheme.colorScheme.onSurface.copy(.15f)
                     }
                 )
-                val shape = MaterialTheme.shapes.large
-                Surface (
-                    color = MaterialTheme.colorScheme.onSurface.copy(0f),
-                    shape = shape,
-                    modifier = Modifier
-                        .size(160.dp)
-                        .zIndex(2f)
-                        .offset { IntOffset(offsetX.roundToPx(), offsetY.roundToPx()) }
-                        .pointerInput(Unit) {
-                            detectDragGestures { change, dragAmount ->
-                                change.consume()
-                                offsetX += with(density) { dragAmount.x.toDp() }
-                                offsetY += with(density) { dragAmount.y.toDp() }
-                            }
-                        }
-                        .shadow(25.dp, shape = shape )
-                        .glassLayer(
-                            shaderState,
-                            scale = 0.8f,
-                            clipShape = shape,
-                            tint =  color,
-                            blur = squareBlur
-                        )
-                ) {
-                }
+                Square(shaderState,color2,squareBlur)
 
                 Box(
                     modifier = Modifier.shaderSource(shaderState)
@@ -232,4 +215,55 @@ fun App() {
             }
         }
     }
+}
+
+@Composable
+fun Square(
+    shaderState: ShaderState,
+    color: Color,
+    squareBlur: Dp,
+    isBlurSquare: Boolean = false,
+) {
+    val shape = MaterialTheme.shapes.large
+
+    var offsetX by remember { mutableStateOf(15.dp) }
+    var offsetY by remember { mutableStateOf(15.dp) }
+    var scale by remember { mutableFloatStateOf(1f) } // 缩放比例
+
+    // 屏幕密度
+    val density = LocalDensity.current
+
+    Surface(
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0f),
+        shape = shape,
+        modifier = Modifier
+            .size(250.dp * scale) // 缩放
+            .zIndex(2f)
+            .offset { IntOffset(offsetX.roundToPx(), offsetY.roundToPx()) }
+            .pointerInput(Unit) {
+                detectTransformGestures { _, pan, zoom, _ ->
+                    // 缩放
+                    scale = (scale * zoom).coerceIn(0.5f, 3f) // 最小0.5倍，最大3倍
+
+                    // 平移
+                    offsetX += with(density) { pan.x.toDp() }
+                    offsetY += with(density) { pan.y.toDp() }
+                }
+            }
+            .shadow(25.dp, shape = shape)
+            .let {
+                if (!isBlurSquare)
+                    it.glassLayer(
+                        shaderState,
+                        clipShape = shape,
+                        tint = color,
+                        blur = squareBlur
+                    )
+                else
+                    it.blurLayer(
+                        shaderState,
+                        clipShape = shape
+                    )
+            }
+    ) {}
 }

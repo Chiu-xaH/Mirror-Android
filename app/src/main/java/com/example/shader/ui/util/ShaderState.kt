@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 
 @Composable
 fun rememberShaderState(): ShaderState {
@@ -28,7 +29,6 @@ class ShaderState internal constructor(
 ) {
     // 裁剪形状
     internal var rect: Rect? by mutableStateOf(null)
-    internal val componentRects = mutableStateMapOf<Any, Rect>()
 }
 
 // 记录内容
@@ -52,3 +52,17 @@ fun Modifier.shaderSource(
         .onGloballyPositioned { layoutCoordinates ->
             state.rect = layoutCoordinates.boundsInRoot()
         }
+
+
+fun Modifier.recordPosition(
+    onResult : (Rect) -> Unit
+) = this.onGloballyPositioned { layoutCoordinates ->
+    val pos = layoutCoordinates.positionInWindow()
+    val size = layoutCoordinates.size
+    onResult(Rect(
+        pos.x,
+        pos.y,
+        pos.x + size.width,
+        pos.y + size.height
+    ))
+}

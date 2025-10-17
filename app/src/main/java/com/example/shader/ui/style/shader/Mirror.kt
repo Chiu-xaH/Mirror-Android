@@ -24,6 +24,7 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.shader.ui.util.ShaderState
+import com.example.shader.ui.util.recordPosition
 import org.intellij.lang.annotations.Language
 import java.util.UUID
 
@@ -54,15 +55,8 @@ fun Modifier.scaleMirror(
                             .asComposeRenderEffect()
                     }
                 }
-                .onGloballyPositioned { layoutCoordinates ->
-                    val pos = layoutCoordinates.positionInWindow()
-                    val size = layoutCoordinates.size
-                    rect = Rect(
-                        pos.x,
-                        pos.y,
-                        pos.x + size.width,
-                        pos.y + size.height
-                    )
+                .recordPosition {
+                    rect = it
                 }
         }
     }
@@ -83,52 +77,49 @@ fun Modifier.mirrorLayer(
                 drawRect(tint)
             }
         }
-        .mirrorLayer(state,scale,blur)
+        .mirrorLayer(state, scale, blur)
 
 fun Modifier.mirrorLayer(
     state: ShaderState,
     scale : Float,
     blur : Dp = 0.dp,
-    id: Any = UUID.randomUUID()
 ) : Modifier =
-    this
-        .blur(blur)
-        .graphicsLayer {
-            state.componentRects[id]?.let { r ->
-                val runtimeShader = RuntimeShader(MIRROR_SHADER_CODE.trimIndent())
-                runtimeShader.setFloatUniform("size", r.width, r.height)
-                runtimeShader.setFloatUniform("scale", scale)
+    composed {
+        var rect by remember { mutableStateOf<Rect?>(null) }
 
-                val mirrorShader = RenderEffect.createRuntimeShaderEffect(runtimeShader, "content")
-                renderEffect = mirrorShader.asComposeRenderEffect()
+        this
+            .blur(blur)
+            .graphicsLayer {
+                rect?.let { r ->
+                    val runtimeShader = RuntimeShader(MIRROR_SHADER_CODE.trimIndent())
+                    runtimeShader.setFloatUniform("size", r.width, r.height)
+                    runtimeShader.setFloatUniform("scale", scale)
+
+                    val mirrorShader =
+                        RenderEffect.createRuntimeShaderEffect(runtimeShader, "content")
+                    renderEffect = mirrorShader.asComposeRenderEffect()
+                }
+                clip = true
             }
-            clip = true
-        }
-        .drawWithCache {
-            onDrawBehind {
-                val contentRect = state.rect ?: return@onDrawBehind
-                val surfaceRect = state.componentRects[id] ?: return@onDrawBehind
+            .drawWithCache {
+                onDrawBehind {
+                    val contentRect = state.rect ?: return@onDrawBehind
+                    val surfaceRect = rect ?: return@onDrawBehind
 
-                val offset = surfaceRect.topLeft - contentRect.topLeft
-                // 绘制原画面
-                withTransform({
-                    translate(-offset.x, -offset.y)
-                }) {
-                    drawLayer(state.graphicsLayer)
+                    val offset = surfaceRect.topLeft - contentRect.topLeft
+                    // 绘制原画面
+                    withTransform({
+                        translate(-offset.x, -offset.y)
+                    }) {
+                        drawLayer(state.graphicsLayer)
+                    }
                 }
             }
-        }
-        // 记录位置
-        .onGloballyPositioned { layoutCoordinates ->
-            val pos = layoutCoordinates.positionInWindow()
-            val size = layoutCoordinates.size
-            state.componentRects[id] = Rect(
-                pos.x,
-                pos.y,
-                pos.x + size.width,
-                pos.y + size.height
-            )
-        }
+            // 记录位置
+            .recordPosition {
+                rect = it
+            }
+    }
 
 
 

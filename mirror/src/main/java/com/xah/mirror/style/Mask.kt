@@ -1,4 +1,4 @@
-package com.xah.mirror.util
+package com.xah.mirror.style
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState

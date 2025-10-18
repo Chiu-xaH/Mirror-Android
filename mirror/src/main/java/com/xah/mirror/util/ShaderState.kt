@@ -39,7 +39,13 @@ fun Modifier.shaderSource(
         .drawWithContent {
             drawContent()
             state.graphicsLayer.record {
-                this@drawWithContent.drawContent()
+                val bounds = state.rect ?: return@record
+                withTransform({
+                    // 录全屏
+                    clipRect(0f, 0f, bounds.width, bounds.height)
+                }) {
+                    this@drawWithContent.drawContent()
+                }
             }
         }
         .onGloballyPositioned { layoutCoordinates ->

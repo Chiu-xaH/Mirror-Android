@@ -4,39 +4,33 @@ import android.graphics.RenderEffect
 import android.graphics.RuntimeShader
 import android.graphics.Shader
 import android.os.Build
-import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.xah.mirror.util.ShaderState
-import com.xah.mirror.util.mask
+import com.xah.mirror.style.mask
 import com.xah.mirror.util.recordPosition
 import org.intellij.lang.annotations.Language
 
 
 data class GlassStyle(
-    val blur : Dp = 0.dp,
-    val border : Float = 35f,
+    val blur : Dp = 7.5.dp,
+    val border : Float = 20f,
     val dispersion : Float = 0f,
-    val distortFactor : Float = 0.1f,
+    val distortFactor : Float = 0.05f,
 )
 
 // 绘制内容
@@ -80,7 +74,6 @@ fun Modifier.glassLayer(
                 RenderEffect.createChainEffect(blurEffect, chained).asComposeRenderEffect()
             }
 
-
             this
                 .drawWithCache {
                     onDrawWithContent {
@@ -91,19 +84,21 @@ fun Modifier.glassLayer(
                             val offset = surfaceRect.topLeft - contentRect.topLeft
 
                             record {
-                                // 绘制裁剪
                                 withTransform({
                                     translate(-offset.x, -offset.y)
                                 }) {
                                     drawLayer(state.graphicsLayer)
                                 }
                             }
-
-                            rect?.let { r ->
-                                renderEffect = customRenderEffect
+                        }
+                        localLayer.renderEffect = customRenderEffect
+                        rect?.let {
+                            withTransform({
+                                clipRect(0f, 0f, it.width, it.height)
+                            }) {
+                                drawLayer(localLayer)
                             }
                         }
-                        drawLayer(localLayer)
                         drawContent()
                     }
                 }

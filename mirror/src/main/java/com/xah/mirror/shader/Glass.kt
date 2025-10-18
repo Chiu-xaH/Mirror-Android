@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.withTransform
@@ -31,18 +32,34 @@ data class GlassStyle(
     val border : Float = 20f,
     val dispersion : Float = 0f,
     val distortFactor : Float = 0.05f,
+    val overlayColor : Color = Color.Transparent
 )
 
-// 绘制内容
-fun Modifier.glassLayer(
-    state: ShaderState,
-    tint : Color,
-    style : GlassStyle
-) : Modifier =
-    this
-        .mask(color = tint)
-        .glassLayer(state,style)
+val smallStyle = GlassStyle(
+    blur  = 7.5.dp,
+    border  = 20f,
+    dispersion  = 0f,
+    distortFactor = 0.05f,
+)
 
+val largeStyle = GlassStyle(
+    blur  = 10.dp,
+    border  = 30f,
+    dispersion  = 0f,
+    distortFactor = 0.075f,
+)
+
+
+val extraLargeStyle = GlassStyle(
+    blur  = 10.dp,
+    border  = 40f,
+    dispersion  = 0f,
+    distortFactor = 0.01f,
+)
+
+
+
+// 绘制内容
 fun Modifier.glassLayer(
     state: ShaderState,
     style: GlassStyle
@@ -96,9 +113,18 @@ fun Modifier.glassLayer(
                             withTransform({
                                 clipRect(0f, 0f, it.width, it.height)
                             }) {
+                                // 裁切录制的内容
                                 drawLayer(localLayer)
+                                if (style.overlayColor.alpha > 0f) {
+                                    drawRect(
+                                        color = style.overlayColor,
+                                        size = Size(it.width, it.height),
+                                        alpha = style.overlayColor.alpha
+                                    )
+                                }
                             }
                         }
+                        // 原内容
                         drawContent()
                     }
                 }

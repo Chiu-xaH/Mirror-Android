@@ -44,7 +44,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "com.xah.mirror"
             artifactId = "library"
-            version = "0.1-aplha02"
+            version = "0.1-alpha02"
 
             afterEvaluate {
                 from(components["release"])

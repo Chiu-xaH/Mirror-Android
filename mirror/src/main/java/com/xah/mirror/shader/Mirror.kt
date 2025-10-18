@@ -2,6 +2,7 @@ package com.xah.mirror.shader
 
 import android.graphics.RenderEffect
 import android.graphics.RuntimeShader
+import android.graphics.Shader
 import android.os.Build
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.getValue
@@ -23,6 +24,7 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.xah.mirror.util.ShaderState
+import com.xah.mirror.util.mask
 import com.xah.mirror.util.recordPosition
 import org.intellij.lang.annotations.Language
 
@@ -38,7 +40,6 @@ fun Modifier.scaleMirror(
         composed {
             // 绘制面
             var rect by remember { mutableStateOf<Rect?>(null) }
-
             this
                 .graphicsLayer {
                     clip = true
@@ -58,72 +59,6 @@ fun Modifier.scaleMirror(
                 }
         }
     }
-
-// 绘制内容
-fun Modifier.mirrorLayer(
-    state: ShaderState,
-    scale : Float,
-    clipShape: Shape,
-    tint : Color,
-    blur : Dp = 0.dp,
-) : Modifier =
-    this
-        .clip(clipShape)
-        .drawWithCache {
-            onDrawWithContent {
-                drawContent()
-                drawRect(tint)
-            }
-        }
-        .mirrorLayer(state, scale, blur)
-
-fun Modifier.mirrorLayer(
-    state: ShaderState,
-    scale : Float,
-    blur : Dp = 0.dp,
-) : Modifier =
-    if(Build.VERSION.SDK_INT < 33) {
-        this
-    } else {
-        composed {
-            var rect by remember { mutableStateOf<Rect?>(null) }
-
-            this
-                .blur(blur)
-                .graphicsLayer {
-                    rect?.let { r ->
-                        val runtimeShader = RuntimeShader(MIRROR_SHADER_CODE.trimIndent())
-                        runtimeShader.setFloatUniform("size", r.width, r.height)
-                        runtimeShader.setFloatUniform("scale", scale)
-
-                        val mirrorShader =
-                            RenderEffect.createRuntimeShaderEffect(runtimeShader, "content")
-                        renderEffect = mirrorShader.asComposeRenderEffect()
-                    }
-                    clip = true
-                }
-                .drawWithCache {
-                    onDrawBehind {
-                        val contentRect = state.rect ?: return@onDrawBehind
-                        val surfaceRect = rect ?: return@onDrawBehind
-
-                        val offset = surfaceRect.topLeft - contentRect.topLeft
-                        // 绘制原画面
-                        withTransform({
-                            translate(-offset.x, -offset.y)
-                        }) {
-                            drawLayer(state.graphicsLayer)
-                        }
-                    }
-                }
-                // 记录位置
-                .recordPosition {
-                    rect = it
-                }
-        }
-    }
-
-
 
 
 @Language("ASGL")

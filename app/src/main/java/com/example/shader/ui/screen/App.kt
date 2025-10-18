@@ -59,7 +59,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.example.shader.R
+import com.xah.mirror.shader.GlassStyle
 import com.xah.mirror.shader.blurLayer
+import com.xah.mirror.shader.blurSource
 import com.xah.mirror.shader.glassLayer
 import com.xah.mirror.shader.scaleMirror
 import com.xah.mirror.util.ShaderState
@@ -149,10 +151,13 @@ fun App() {
                         MaterialTheme.colorScheme.onSurface.copy(.15f)
                     }
                 )
-                Square(shaderState,color2,squareBlur)
+                Square(shaderState,color2,squareBlur,false)
+//                Square(shaderState,color2,squareBlur,true)
 
                 Box(
-                    modifier = Modifier.shaderSource(shaderState)
+                    modifier = Modifier
+                        .shaderSource(shaderState)
+//                        .blurSource(shaderState,5.dp)
                 ){
                     if(imageBitmap == null) {
                         LazyColumn(
@@ -250,16 +255,20 @@ fun Square(
                 if (!isBlurSquare)
                     it.glassLayer(
                         shaderState,
-                        dispersion = 0f,
-                        clipShape = shape,
+                        style = GlassStyle(
+                            distortFactor = 0.05f,
+                            blur = squareBlur
+                        ),
                         tint = color,
-                        blur = squareBlur
                     )
                 else
                     it.blurLayer(
                         shaderState,
-                        clipShape = shape
                     )
             }
-    ) {}
+    ) {
+//        Box(modifier = Modifier.fillMaxSize()) {
+//            Text("内容", modifier = Modifier.align(Alignment.Center))
+//        }
+    }
 }

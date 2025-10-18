@@ -2,7 +2,9 @@ package com.xah.mirror.shader
 
 import android.graphics.RenderEffect
 import android.graphics.RuntimeShader
+import android.graphics.Shader
 import android.os.Build
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -18,79 +20,91 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.xah.mirror.util.ShaderState
+import com.xah.mirror.util.mask
 import com.xah.mirror.util.recordPosition
 import org.intellij.lang.annotations.Language
 
 
+data class GlassStyle(
+    val blur : Dp = 0.dp,
+    val border : Float = 35f,
+    val dispersion : Float = 0f,
+    val distortFactor : Float = 0.1f,
+)
+
 // 绘制内容
 fun Modifier.glassLayer(
     state: ShaderState,
-    clipShape: Shape,
     tint : Color,
-    blur : Dp = 0.dp,
-    border : Float = 35f,
-    dispersion : Float = 9f,
-    distortFactor : Float = 0.1f,
+    style : GlassStyle
 ) : Modifier =
     this
-        .clip(clipShape)
-        .drawWithCache {
-            onDrawWithContent {
-                drawContent()
-                drawRect(tint)
-            }
-        }
-        .glassLayer(state,border,dispersion,distortFactor,blur)
+        .mask(color = tint)
+        .glassLayer(state,style)
 
 fun Modifier.glassLayer(
     state: ShaderState,
-    border : Float = 35f,
-    dispersion : Float = 9f,
-    distortFactor : Float = 0.1f,
-    blur : Dp = 0.dp,
+    style: GlassStyle
 ) : Modifier =
     if(Build.VERSION.SDK_INT < 33)
         this
     else {
         composed {
             var rect by remember { mutableStateOf<Rect?>(null) }
+            val localLayer = rememberGraphicsLayer()
+            val density = LocalDensity.current
+            val customRenderEffect = remember(rect, style) {
+                if (rect == null) return@remember null
+                val r = rect!!
+                val runtimeShader = RuntimeShader(GLASS_SHADER_CODE.trimIndent()).apply {
+                    setFloatUniform("size", r.width, r.height)
+                    setFloatUniform("border", style.border)
+                    setFloatUniform("dispersion", style.dispersion)
+                    setFloatUniform("distortFactor", style.distortFactor)
+                }
+
+                val enhanceEffect = enhanceColorShader(style.blur != 0.dp)
+
+                val blurDp = with(density) { style.blur.toPx() }
+                val blurEffect =  RenderEffect.createBlurEffect(blurDp, blurDp, Shader.TileMode.CLAMP)
+
+                val mirrorShader = RenderEffect.createRuntimeShaderEffect(runtimeShader, "content")
+                val chained = RenderEffect.createChainEffect(enhanceEffect, mirrorShader)
+                RenderEffect.createChainEffect(blurEffect, chained).asComposeRenderEffect()
+            }
+
 
             this
-                .blur(blur)
-                .graphicsLayer {
-                    rect?.let { r ->
-                        val runtimeShader = RuntimeShader(GLASS_SHADER_CODE.trimIndent())
-                        runtimeShader.setFloatUniform("size", r.width, r.height)
-                        runtimeShader.setFloatUniform("border", border)
-                        runtimeShader.setFloatUniform("dispersion", dispersion)
-                        runtimeShader.setFloatUniform("distortFactor", distortFactor)
-
-
-                        val enhanceEffect = enhanceColorShader(blur != 0.dp)
-                        val mirrorShader =
-                            RenderEffect.createRuntimeShaderEffect(runtimeShader, "content")
-                        val chained = RenderEffect.createChainEffect(enhanceEffect, mirrorShader)
-
-                        renderEffect = chained.asComposeRenderEffect()
-                    }
-                    clip = true
-                }
                 .drawWithCache {
-                    onDrawBehind {
-                        val contentRect = state.rect ?: return@onDrawBehind
-                        val surfaceRect = rect ?: return@onDrawBehind
+                    onDrawWithContent {
+                        localLayer.apply {
+                            val contentRect = state.rect ?: return@apply
+                            val surfaceRect = rect ?: return@apply
 
-                        val offset = surfaceRect.topLeft - contentRect.topLeft
-                        // 绘制原画面
-                        withTransform({
-                            translate(-offset.x, -offset.y)
-                        }) {
-                            drawLayer(state.graphicsLayer)
+                            val offset = surfaceRect.topLeft - contentRect.topLeft
+
+                            record {
+                                // 绘制裁剪
+                                withTransform({
+                                    translate(-offset.x, -offset.y)
+                                }) {
+                                    drawLayer(state.graphicsLayer)
+                                }
+                            }
+
+                            rect?.let { r ->
+                                renderEffect = customRenderEffect
+                            }
                         }
+                        drawLayer(localLayer)
+                        drawContent()
                     }
                 }
                 // 记录位置

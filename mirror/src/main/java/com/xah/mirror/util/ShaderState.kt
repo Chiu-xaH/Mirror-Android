@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
+import java.util.UUID
 
 @Composable
 fun rememberShaderState(): ShaderState {
@@ -37,15 +38,8 @@ fun Modifier.shaderSource(
     this
         .drawWithContent {
             drawContent()
-
             state.graphicsLayer.record {
-                val bounds = state.rect ?: return@record
-                withTransform({
-                    // 裁剪只录自己范围
-                    clipRect(0f, 0f, bounds.width, bounds.height)
-                }) {
-                    this@drawWithContent.drawContent()
-                }
+                this@drawWithContent.drawContent()
             }
         }
         .onGloballyPositioned { layoutCoordinates ->

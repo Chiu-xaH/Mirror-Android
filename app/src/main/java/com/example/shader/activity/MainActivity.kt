@@ -8,7 +8,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import com.example.shader.ui.screen.App
 import com.example.shader.ui.style.theme.ShaderDemoTheme
 
-
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,3 +20,4 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+

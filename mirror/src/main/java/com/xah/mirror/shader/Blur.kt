@@ -29,21 +29,19 @@ import com.xah.mirror.util.recordPosition
 // 绘制内容
 fun Modifier.blurLayer(
     state: ShaderState,
-    clipShape: Shape,
 ) : Modifier = composed {
     var rect by remember { mutableStateOf<Rect?>(null) }
 
     this
-        .clip(clipShape)
         .drawWithCache {
             onDrawBehind {
+                // 绘制
                 val contentRect = state.rect ?: return@onDrawBehind
                 val surfaceRect = rect ?: return@onDrawBehind
 
                 val offset = surfaceRect.topLeft - contentRect.topLeft
                 withTransform({
                     translate(-offset.x, -offset.y)
-                    clipRect(0f, 0f, surfaceRect.width, surfaceRect.height)
                 }) {
                     drawLayer(state.graphicsLayer)
                 }
@@ -58,6 +56,7 @@ fun Modifier.blurLayer(
 fun Modifier.blurSource(
     state : ShaderState,
     blur : Dp,
+    enhanceColor : Boolean = false,
 ) : Modifier =
     if(Build.VERSION.SDK_INT < 32)
         this
@@ -66,15 +65,15 @@ fun Modifier.blurSource(
             .drawWithContent {
                 drawContent()
 
-                state.graphicsLayer.record {
-                    this@drawWithContent.drawContent()
-                }
-
                 val blurEffect = RenderEffect.createBlurEffect(blur.toPx(), blur.toPx(), Shader.TileMode.CLAMP)
-                val enhanceEffect = enhanceColorShader(blur != 0.dp)
+                val enhanceEffect = enhanceColorShader(enhanceColor)
                 val chained = RenderEffect.createChainEffect(enhanceEffect, blurEffect)
 
                 state.graphicsLayer.renderEffect = chained.asComposeRenderEffect()
+                // 模糊后的画面录制下拉
+                state.graphicsLayer.record {
+                    this@drawWithContent.drawContent()
+                }
             }
             .onGloballyPositioned { layoutCoordinates ->
                 state.rect = layoutCoordinates.boundsInRoot()
